@@ -1,0 +1,80 @@
+
+****************** ETL **************************
+
+----------------- Dim_Actors 
+
+  INSERT INTO `dim_actor` (
+    SELECT actor_id, actor.first_name, actor.last_name,
+    CONCAT(actor.first_name, ' ', actor.last_name) AS full_name
+    FROM sakila.actor
+  )
+
+
+----------------- Dim_Category 
+
+  INSERT INTO `dim_category` (
+    SELECT category_id, name
+    FROM sakila.category
+  )
+
+
+----------------- Dim_Rental_Date 
+
+  INSERT INTO `dim_rental_date` (
+    SELECT rental_id, rental_date
+    FROM sakila.rental
+  )
+
+
+----------------- Dim_Geography
+
+  INSERT INTO `dim_geography` (
+    SELECT sakila.country.country_id, sakila.country.country, world.country.region , world.country.continent
+    FROM sakila.country, world.country
+    WHERE sakila.country.country = world.country.Name
+  )
+
+
+----------------- Fact_Casting
+
+  INSERT INTO `fact_casting` (
+    SELECT
+      actor.actor_id,
+      category.category_id,
+      COUNT(DISTINCT film.film_id) AS nombre_films
+    FROM sakila.actor, sakila.film_actor, sakila.film_category,
+    sakila.category
+    WHERE actor.actor_id = film_actor.actor_id
+      AND film_actor.film_id = film.film_id
+     AND film.film_id = film_category.film_id
+     AND film_category.category_id = category.category_id
+   GROUP BY actor.actor_id, category.category_id
+ )
+
+
+----------------- Fact_Profitability
+
+  INSERT INTO `fact_profitability` (
+    SELECT
+      category.category_id, country.country_id, rental.rental_id, actor.actor_id,
+      COUNT(rental.rental_id) AS nombre_locations,
+      SUM(payment.amount) AS montant_total
+    FROM sakila.rental, sakila.inventory, sakila.film, sakila.film_category,
+    sakila.category, sakila.film_actor, sakila.actor,
+    sakila.customer, sakila.address, sakila.city, sakila.country, sakila.payment
+    WHERE rental.inventory_id = inventory.inventory_id
+     AND inventory.film_id = film.film_id
+     AND film.film_id = film_category.film_id
+     AND film_category.category_id = category.category_id
+     AND film.film_id = film_actor.film_id
+     AND film_actor.actor_id = actor.actor_id
+     AND rental.customer_id = customer.customer_id
+     AND customer.address_id = address.address_id
+     AND address.city_id = city.city_id
+     AND city.country_id = country.country_id
+     AND rental.rental_id = payment.rental_id
+   GROUP BY actor.actor_id, category.category_id, country.country_id
+   ORDER BY actor.actor_id, category.category_id, country.country_id
+ )
+
+*********************Chdbia**********************
